@@ -27,7 +27,7 @@
                                 class="mx-2"
                                 dark
                                 small
-                                :color="!hasUserInput ? 'purple' : 'grey'"
+                                :color="!hasUserInput ? '#8800EA' : 'grey'"
                                 @click="changeSearch('repositories')"
                             >
                                 <v-icon dark>
@@ -51,14 +51,14 @@
             </template>
 
             <template v-slot:[`item.html_url`] = "{ item }">
-                <a :href="item.html_url">
+                <a :href="item.html_url" target="_blank">
                     {{ item.html_url }}
                 </a>
             </template>
 
             <template v-slot:[`item.type`] = "{ item }">
                 <v-chip v-if="item.type === 'User'" color="green" dark> {{ item.type }} </v-chip>
-                <v-chip v-else color="purple" dark> {{ item.type }} </v-chip>
+                <v-chip v-else color="#8800EA" dark> {{ item.type }} </v-chip>
             </template>
 
             <template v-slot:[`item.owner_login`] = "{ item }">
@@ -72,15 +72,16 @@
                             v-on="on"
                             v-bind="attrs"
                             color="primary"
-                            @click="console.log('nothing yet...')"
+                            :disabled="!hasToken"
+                            @click="followUser(item)"
                             icon
                         >
                             <v-icon dark>
-                                mdi-account-star-outline
+                                mdi-account-heart-outline
                             </v-icon>
                         </v-btn>
                     </template>
-                    Favorite
+                    Follow
                 </v-tooltip>
             </template>
 
@@ -88,10 +89,10 @@
                 <v-tooltip bottom>
                     <template v-slot:activator="{ on, attrs }">
                         <v-btn
-                            v-if="hasToken"
                             v-on="on"
                             v-bind="attrs"
-                            color="primary"
+                            color="#8800EA"
+                            :disabled="!hasToken"
                             @click="createIssue(item)"
                             icon
                         >
@@ -105,11 +106,18 @@
             </template>
         </v-data-table>
 
+        <snackbar
+            :show="snackbar.show"
+            :color="snackbar.color"
+            :message="snackbar.text"
+            @destroy="snackbar.show = false"
+        />
+
         <modal-issue 
             v-if="showIssueModal"
             :repo="repoObject"
             @cancel="cancelIssue()"
-            @created="cancelIssue()"
+            @created="cancelIssue(false)"
         />
     </div>
 </template>
@@ -139,11 +147,13 @@ const headersRepositories = [
 import _debounce from 'lodash/debounce'
 import ListItems from './ListItems'
 import ModalIssue from './ModalIssue'
+import Snackbar from './common/Snackbar.vue'
 
 export default {
 	components: {
 		ListItems,
         ModalIssue,
+        Snackbar,
 	},
 
 	data() {
@@ -154,6 +164,12 @@ export default {
             search: '',
             typeSearch: 'users',
             showIssueModal: false,
+
+            snackbar: {
+                show: false,
+                color: '',
+                text: '',
+            }
 		}
 	},
 
@@ -207,13 +223,28 @@ export default {
         },
 
         handleAuthorization() {
-            console.log('checking...');
             if (! this.hasToken) {
                 delete this.axios.defaults.headers.common['Authorization'];
             } else {
-                console.log('authorized!');
                 this.axios.defaults.headers.common['Authorization'] = 'token ' + this.$store.state.personalAccessToken;
             }
+        },
+
+        async followUser(user) {
+            try {
+                await this.axios.put(`user/following/${user.login}`);
+                this.setSnackbar('success', 'User followed!');
+            } catch (error) {
+                console.log(error);
+            }
+        },
+
+        setSnackbar(color, text) {
+            this.snackbar = {
+                show: true,
+                color: color,
+                text: text,
+            };
         },
 
         createIssue(repo) {
@@ -221,7 +252,8 @@ export default {
             this.showIssueModal = true;
         },
 
-        cancelIssue() {
+        cancelIssue(cancel = true) {
+            if (! cancel) this.setSnackbar('success', 'Issue created!');
             this.repoObject = {};
             this.showIssueModal = false;
         },

@@ -26,7 +26,7 @@
                 <v-spacer></v-spacer>
                 <v-btn
                     text
-                    color="primary"
+                    color="#8800EA"
                     @click="$emit('cancel')"
                 >
                     Cancel
@@ -34,7 +34,7 @@
 
                 <v-btn
                     text
-                    color="primary"
+                    color="#8800EA"
                     @click="createIssue()"
                 >
                     Create
@@ -70,13 +70,8 @@ export default {
     methods: {
         async createIssue(item) {
             await this.axios.post(`repos/${this.repo.owner.login}/${this.repo.name}/issues`, {
-                // owner: item.owner.login,
-                // repo: item.name,
                 title: this.titleIssue,
                 body: this.bodyIssue,
-                // labels: [
-                //     'bug'
-                // ]
             })
             this.$emit('created');
         }
